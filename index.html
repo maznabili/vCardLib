@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>vCardLib Documentation</title>
+    <meta charset="utf-8" />
+    <script src="scripts/bootstrap.js"></script>
+    <script src="scripts/jquery-2.2.4.min.js"></script>
+    <link rel="stylesheet" href="styles/bootstrap.css" />
+    <link rel="icon" href="images/favicon.ico" />
+</head>
+<body>
+  <div class="container">
+    <div class="page-header">
+      <h1>vCardLib Documentation</h1>
+    </div>
+    <p>vCardLib is a .NET library written entirely in C#. It is designed to enable developers read contacts stored in a vCard file (*.vcf or *.vcard). As at today 3rd June 2016, the latest version of the library (v1.1.2) <strong>supports vCard files of version 2.1 only.</strong> The library has its classes under the namespace 'vCardLib'. The class 'vCard' has static methods 'FromFile' and 'FromStreamReader' which as their names imply allow you extract contacts from a file and a StreamReader object respectively.</p>
+    <br/>
+    <p>The 'FromFile' and 'FromStreamReader' methods return a vCardCollection object which inherits from 'CollectionBase'. The 'vCardCollection' object implements 'IEnumerable' and can be iterated over using the 'foreach' operator. Each object is a vCard object from which properties can be read.</p>
+    <br/>
+    <p><a href="http://www.nuget.org/packages/vCardLib.dll">Get the library from Nuget</a></p>
+    <p><a href="https://github.com/bolorundurowb/VCF-Reader">View the source on Github</a></p>
+    <div class="page-header">
+      <h3>vCard Properties</h3>
+    </div>
+  </div>
+</body>
+</html>
