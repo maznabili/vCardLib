@@ -19,8 +19,24 @@
     <br/>
     <p><a href="http://www.nuget.org/packages/vCardLib.dll">Get the library from Nuget</a></p>
     <p><a href="https://github.com/bolorundurowb/VCF-Reader">View the source on Github</a></p>
+    <br/>
     <div class="page-header">
-      <h3>vCard Properties</h3>
+      <h3>Library Version 1.1.3 Property Changelog</h3>
+    </div>
+    <ol>
+      <li>Pictures: PhotoCollection      <i>Support has been added for JPEG and GIF image URLs and for JPEG images. Support for other formats coming soon.</i>
+        <ul>
+          <li>Picture: Bitmap</li>
+          <li>Type: PhotoType (Image, URL)</li>
+          <li>Encoding: PhotoEncoding (JPEG, GIF)</li>
+          <li>PhotoURL: string</li>
+        </ul>
+      </li>
+      <li>Gender: GenderType (Male, Female, Other, None) <i>None is the default if no gender specified</i></li>
+    </ol>
+    <br/>
+    <div class="page-header">
+      <h3>Library Version 1.1.2 Properties</h3>
     </div>
     <ol>
       <li>Version: float (2.1, 3.0 or 4.0)</li>
@@ -80,7 +96,7 @@
           <li>Type: AddressType (Work, Home)</li>
         </ul>
       </li>
-      <li>Photos: PhotoCollection        <strong><i>Warning: This will always be an emply collection as I am having issues converting base64 strings to bitmaps</i></strong>
+      <li>Pictures: PhotoCollection        <strong><i>Warning: This will always be an emply collection as I am having issues converting base64 strings to bitmaps</i></strong>
         <ul>
           <li>Picture: Bitmap</li>
         </ul>
