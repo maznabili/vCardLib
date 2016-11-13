@@ -25,10 +25,8 @@
 
     <!-- Scripts
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="https://google-code-prettify.googlecode.com/svn/loader/run_prettify.js"></script>
     <script src="scripts/prism.js"></script>
-    <script src="scripts/site.js"></script>
 
     <!-- Favicon
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -48,6 +46,39 @@
       <a class="button button-primary" href="http://www.nuget.org/packages/vCardLib.dll">Nuget</a>
       <a class="button" href="https://github.com/bolorundurowb/VCF-Reader">Source</a>
     </div>
+
+    <br />
+    <h3>How to use the library</h3>
+    <p>
+      To install this library from Nuget you can click the "Nuget" button above. If you want to install it via the Package Manager, you can run the command:
+      <code>Install-Package vCardLib.dll</code>
+      To make the methods and classes of the library available, add this at the top of your <em>*.cs</em> file:
+      <code>using vCardLib;</code>
+      In your class you call the static method <code>FromFile</code> and pass a string containing the path to a <em>vcf</em> or <em>vcard</em> file to it:
+      <pre>
+        <code class="language-csharp">
+          string filePath = //path to vcf file;
+
+          vCardCollection contacts = vCard.FromFile(filePath);
+        </code>
+      </pre>
+      Or pass a StreamReader object to it:
+      <pre>
+        <code class="language-csharp">
+          StreamReader sr = //generate a streamreader somehow;
+          vCardCollection contacts = vCard.FromStreamReader(sr);
+        </code>
+      </pre>
+      Iterate over the collection and pick the vCard objects:
+      <pre>
+        <code class="language-csharp">
+          foreach(vCard contact in contacts)
+          {
+            Console.WriteLine(contact.FormattedName);
+          }
+        </code>
+      </pre>
+    </p>
 
     <div class="header">
       <h2>Library Version Changelogs</h2>
@@ -185,5 +216,10 @@
       </li>
     </ol>
   </div>
+
+  <!-- Scripts
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script src="scripts/site.js"></script>
 </body>
 </html>
