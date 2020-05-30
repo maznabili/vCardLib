@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using vCardLib.Collections;
-using vCardLib.Helpers;
+using vCardLib.Enums;
+using vCardLib.Extensions;
 using vCardLib.Models;
-using Version = vCardLib.Helpers.Version;
+using vCardLib.Utils;
 
 namespace vCardLib.Deserializers
 {
@@ -14,6 +15,13 @@ namespace vCardLib.Deserializers
     /// </summary>
     public static class Deserializer
     {
+        private static readonly string[] SupportedFields =
+        {
+            "BEGIN", "VERSION", "N:", "FN:", "ORG", "TITLE", "PHOTO", "TEL", "ADR", "EMAIL", "REV", "TZ", "KIND", "URL",
+            "LANG", "NICKNAME", "BIRTHPLACE", "DEATHPLACE", "BDAY", "NOTE", "GENDER", "X-SKYPE-DISPLAYNAME",
+            "X-SKYPE-PSTNNUMBER", "GEO", "HOBBY", "EXPERTISE", "INTEREST", "END"
+        };
+
         private static string[] _contactDetails;
 
         /// <summary>
@@ -21,7 +29,7 @@ namespace vCardLib.Deserializers
         /// </summary>
         /// <param name="filePath">Path to the vcf or vcard file</param>
         /// <returns>A <see cref="vCardCollection"/></returns>
-        public static vCardCollection FromFile(string filePath)
+        public static List<vCard> FromFile(string filePath)
         {
             var streamReader = Helper.GetStreamReaderFromFile(filePath);
             return FromStreamReader(streamReader);
@@ -32,9 +40,9 @@ namespace vCardLib.Deserializers
         /// </summary>
         /// <param name="streamReader"><see cref="StreamReader"/> containing a vcard(s)</param>
         /// <returns>A <see cref="vCardCollection"/></returns>
-        public static vCardCollection FromStreamReader(StreamReader streamReader)
+        public static List<vCard> FromStreamReader(StreamReader streamReader)
         {
-            var collection = new vCardCollection();
+            var collection = new List<vCard>();
             var contactsString = Helper.GetStringFromStreamReader(streamReader);
             var contacts = Helper.GetContactsArrayFromString(contactsString);
             foreach (var contact in contacts)
@@ -68,19 +76,23 @@ namespace vCardLib.Deserializers
                 throw new InvalidOperationException("details do not contain a specification for 'Version'.");
             }
 
-            var version = float.Parse(versionString.Replace("VERSION:", "").Trim());
+            var decimalSeparator = CultureInfo.CurrentUICulture.NumberFormat.NumberDecimalSeparator;
+            var version = float.Parse(versionString
+                .Replace("VERSION:", "")
+                .Trim()
+                .Replace(".", decimalSeparator));
             vCard vcard = null;
             if (version.Equals(2f) || version.Equals(2.1f))
             {
-                vcard = Deserialize(contactDetails, Version.V2);
+                vcard = Deserialize(contactDetails, vCardVersion.V2);
             }
             else if (version.Equals(3f))
             {
-                vcard = Deserialize(contactDetails, Version.V3);
+                vcard = Deserialize(contactDetails, vCardVersion.V3);
             }
             else if (version.Equals(4.0f))
             {
-                vcard = Deserialize(contactDetails, Version.V4);
+                vcard = Deserialize(contactDetails, vCardVersion.V4);
             }
 
             return vcard;
@@ -92,7 +104,7 @@ namespace vCardLib.Deserializers
         /// <param name="contactDetails">A string array of the contact details</param>
         /// <param name="version">The version to be deserialized from</param>
         /// <returns>A <see cref="vCard"/> comtaining the contacts details</returns>
-        private static vCard Deserialize(string[] contactDetails, Version version)
+        private static vCard Deserialize(string[] contactDetails, vCardVersion version)
         {
             _contactDetails = contactDetails;
             var vcard = new vCard
@@ -118,17 +130,37 @@ namespace vCardLib.Deserializers
                 TimeZone = ParseTimeZone(),
                 Title = ParseTitle(),
                 Url = ParseUrl(),
-                XSkypeDisplayName = ParseXSkypeDisplayName(),
-                XSkypePstnNumber = ParseXSkypePstnNumber()
             };
+
+            vcard.CustomFields = vcard.CustomFields ?? new List<KeyValuePair<string, string>>();
+            foreach (var contactDetail in _contactDetails)
+            {
+                if (SupportedFields.Any(x => contactDetail.StartsWith(x)))
+                {
+                    continue;
+                }
+
+                var contactDetailParts = contactDetail.Split(':');
+                if (contactDetailParts.Length <= 1)
+                {
+                    continue;
+                }
+
+                var entry = new KeyValuePair<string, string>(contactDetailParts[0],
+                    string.Join("", contactDetailParts.Slice(1)));
+                vcard.CustomFields.Add(entry);
+            }
+
             switch (version)
             {
-                case Version.V2:
+                case vCardVersion.V2:
                     return V2Deserializer.Parse(contactDetails, vcard);
-                case Version.V3:
+                case vCardVersion.V3:
                     return V3Deserializer.Parse(contactDetails, vcard);
-                default:
+                case vCardVersion.V4:
                     return V4Deserializer.Parse(contactDetails, vcard);
+                default:
+                    throw new ArgumentException($"The version {version} is not supported.");
             }
         }
 
@@ -246,7 +278,7 @@ namespace vCardLib.Deserializers
                 return deathplaceString.Replace("DEATHPLACE:", "").Trim();
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -263,9 +295,9 @@ namespace vCardLib.Deserializers
                     .Replace("-", "")
                     .Trim();
                 DateTime birthday;
-                var format = "yyyyMMdd";
-                var dateTimeStyle = DateTimeStyles.None;
-                IFormatProvider provider = new CultureInfo("en-US", true);
+                const string format = "yyyyMMdd";
+                const DateTimeStyles dateTimeStyle = DateTimeStyles.None;
+                IFormatProvider provider = new CultureInfo("en-US");
                 if (DateTime.TryParseExact(bdayString, format, provider, dateTimeStyle, out birthday))
                 {
                     return birthday;
@@ -296,7 +328,7 @@ namespace vCardLib.Deserializers
             var names = nString?.Replace("N:", "").Split(new[] {";"}, StringSplitOptions.None);
             if (names?.Length > 0)
                 return names[0];
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -309,7 +341,7 @@ namespace vCardLib.Deserializers
             var names = nString?.Replace("N:", "").Split(new[] {";"}, StringSplitOptions.None);
             if (names?.Length > 1)
                 return names[1];
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -322,7 +354,7 @@ namespace vCardLib.Deserializers
             var names = nString?.Replace("N:", "").Split(new[] {";"}, StringSplitOptions.None);
             if (names?.Length > 2)
                 return names[2];
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -335,7 +367,7 @@ namespace vCardLib.Deserializers
             var names = nString?.Replace("N:", "").Split(new[] {";"}, StringSplitOptions.None);
             if (names?.Length > 3)
                 return names[3];
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -348,7 +380,7 @@ namespace vCardLib.Deserializers
             var names = nString?.Replace("N:", "").Split(new[] {";"}, StringSplitOptions.None);
             if (names?.Length > 4)
                 return names[4];
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -360,7 +392,7 @@ namespace vCardLib.Deserializers
             var tzString = _contactDetails.FirstOrDefault(s => s.StartsWith("TZ"));
             if (tzString != null)
                 return tzString.Replace("TZ:", "").Trim();
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -372,7 +404,7 @@ namespace vCardLib.Deserializers
             var noteString = _contactDetails.FirstOrDefault(s => s.StartsWith("NOTE"));
             if (noteString != null)
                 return noteString.Replace("NOTE:", "").Trim();
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -407,7 +439,7 @@ namespace vCardLib.Deserializers
                 return xSkypeDisplayNumberString.Replace("X-SKYPE-DISPLAYNAME:", "");
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -422,7 +454,7 @@ namespace vCardLib.Deserializers
                 return xSkypePstnString.Replace("X-SKYPE-PSTNNUMBER:", "");
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -441,7 +473,7 @@ namespace vCardLib.Deserializers
                 DateTime revision;
                 var format = "yyyyMMddTHHmmssZ";
                 var dateTimeStyle = DateTimeStyles.None;
-                IFormatProvider provider = new CultureInfo("en-US", true);
+                IFormatProvider provider = new CultureInfo("en-US");
                 if (DateTime.TryParseExact(revisionString, format, provider, dateTimeStyle, out revision))
                 {
                     return revision;
@@ -464,15 +496,11 @@ namespace vCardLib.Deserializers
                 var geoParts = geoString.Split(';');
                 if (geoParts.Length == 2)
                 {
-                    double longitude;
-                    var longSuccess = double.TryParse(geoParts[0], out longitude);
-                    double latitude;
-                    var latSuccess = double.TryParse(geoParts[1], out latitude);
+                    var longSuccess = double.TryParse(geoParts[0], out _);
+                    var latSuccess = double.TryParse(geoParts[1], out var latitude);
                     if (longSuccess && latSuccess)
                     {
-                        var geo = new Geo();
-                        geo.Latitude = latitude;
-                        geo.Longitude = latitude;
+                        var geo = new Geo {Latitude = latitude, Longitude = latitude};
                         return geo;
                     }
                 }

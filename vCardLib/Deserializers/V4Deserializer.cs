@@ -1,8 +1,9 @@
 ﻿using System;
+using vCardLib.Models;
 
 namespace vCardLib.Deserializers
 {
-    public class V4Deserializer
+    public static class V4Deserializer
     {
         /// <summary>
         /// Parse the text representing the vCard object
